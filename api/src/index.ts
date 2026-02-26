@@ -17,10 +17,19 @@ const io = new Server(server, {
 const users = new Map();
 
 io.on("connection", (socket) => {
-  const userData = { id: socket.id, name: "User-${socket.id.substring(0, 4)}" };
+  const userData = { id: socket.id, name: `User-${socket.id.substring(0, 4)}` };
   users.set(socket.id, userData);
 
   io.emit("users-list", Array.from(users.values()));
+
+  socket.on("change-name", (newName) => {
+    const user = users.get(socket.id);
+    if (user) {
+      user.name = newName;
+      users.set(socket.id, user);
+      io.emit("users-list", Array.from(users.values()));
+    }
+  });
 
   socket.on("code-change", (data) => {
     socket.broadcast.emit("code-change", data);

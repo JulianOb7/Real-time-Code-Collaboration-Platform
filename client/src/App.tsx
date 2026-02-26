@@ -12,10 +12,13 @@ function App() {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const isReceiving = useRef(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     socket.on("users-list", (userList: User[]) => {
       setUsers(userList);
+      const me = userList.find((u) => u.id === socket.id);
+      if (me && !userName) setUserName(me.name);
     });
 
     socket.on("code-change", (newValue: string) => {
@@ -30,12 +33,18 @@ function App() {
       socket.off("users-list");
       socket.off("code-change");
     };
-  }, []);
+  }, [userName]);
 
   function handleEditorChange(value: string | undefined) {
     if (!isReceiving.current && value !== undefined) {
       socket.emit("code-change", value);
     }
+  }
+
+  function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const newName = e.target.value;
+    setUserName(newName);
+    socket.emit("change-name", newName);
   }
 
   return (
@@ -56,6 +65,31 @@ function App() {
           color: "white",
         }}
       >
+        <h3
+          style={{
+            color: "#4ade80",
+            fontSize: "0.9rem",
+            letterSpacing: "1px",
+            marginBottom: "10px",
+          }}
+        >
+          YOUR NAME
+        </h3>
+        <input
+          type="text"
+          value={userName}
+          onChange={handleNameChange}
+          style={{
+            width: "100%",
+            background: "#222",
+            border: "1px solid #444",
+            color: "white",
+            padding: "8px",
+            borderRadius: "4px",
+            marginBottom: "30px",
+          }}
+        />
+
         <h3
           style={{
             color: "#4ade80",
@@ -82,7 +116,7 @@ function App() {
                   width: "8px",
                   height: "8px",
                   borderRadius: "50%",
-                  backgroundColor: "#4ade80",
+                  backgroundColor: user.id === socket.id ? "#4ade80" : "#666",
                 }}
               />
               <span>{user.name}</span>
