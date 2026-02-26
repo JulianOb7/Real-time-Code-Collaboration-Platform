@@ -13,6 +13,7 @@ function App() {
   const isReceiving = useRef(false);
   const [users, setUsers] = useState<User[]>([]);
   const [userName, setUserName] = useState("");
+  const [language, setLanguage] = useState("javascript");
 
   useEffect(() => {
     socket.on("users-list", (userList: User[]) => {
@@ -29,9 +30,14 @@ function App() {
       }
     });
 
+    socket.on("language-change", (newLang: string) => {
+      setLanguage(newLang);
+    });
+
     return () => {
       socket.off("users-list");
       socket.off("code-change");
+      socket.off("language-change");
     };
   }, [userName]);
 
@@ -45,6 +51,12 @@ function App() {
     const newName = e.target.value;
     setUserName(newName);
     socket.emit("change-name", newName);
+  }
+
+  function handleLanguageChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const newLang = e.target.value;
+    setLanguage(newLang);
+    socket.emit("language-change", newLang);
   }
 
   return (
@@ -66,12 +78,7 @@ function App() {
         }}
       >
         <h3
-          style={{
-            color: "#4ade80",
-            fontSize: "0.9rem",
-            letterSpacing: "1px",
-            marginBottom: "10px",
-          }}
+          style={{ color: "#4ade80", fontSize: "0.8rem", marginBottom: "10px" }}
         >
           YOUR NAME
         </h3>
@@ -86,17 +93,37 @@ function App() {
             color: "white",
             padding: "8px",
             borderRadius: "4px",
-            marginBottom: "30px",
+            marginBottom: "20px",
           }}
         />
 
         <h3
+          style={{ color: "#4ade80", fontSize: "0.8rem", marginBottom: "10px" }}
+        >
+          LANGUAGE
+        </h3>
+        <select
+          value={language}
+          onChange={handleLanguageChange}
           style={{
-            color: "#4ade80",
-            fontSize: "0.9rem",
-            letterSpacing: "1px",
+            width: "100%",
+            background: "#222",
+            border: "1px solid #444",
+            color: "white",
+            padding: "8px",
+            borderRadius: "4px",
             marginBottom: "20px",
           }}
+        >
+          <option value="javascript">JavaScript</option>
+          <option value="typescript">TypeScript</option>
+          <option value="python">Python</option>
+          <option value="java">Java</option>
+          <option value="cpp">C++</option>
+        </select>
+
+        <h3
+          style={{ color: "#4ade80", fontSize: "0.8rem", marginBottom: "20px" }}
         >
           COLLABORATORS
         </h3>
@@ -120,9 +147,6 @@ function App() {
                 }}
               />
               <span>{user.name}</span>
-              {user.id === socket.id && (
-                <span style={{ opacity: 0.5, fontSize: "0.7rem" }}>(You)</span>
-              )}
             </div>
           ))}
         </div>
@@ -131,7 +155,7 @@ function App() {
       <div style={{ flex: 1 }}>
         <Editor
           height="100%"
-          defaultLanguage="javascript"
+          language={language}
           theme="vs-dark"
           onChange={handleEditorChange}
           onMount={(editor) => (editorRef.current = editor)}

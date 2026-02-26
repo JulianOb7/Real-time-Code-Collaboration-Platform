@@ -22,6 +22,10 @@ io.on("connection", (socket) => {
 
   io.emit("users-list", Array.from(users.values()));
 
+  socket.on("language-change", (newLang) => {
+    socket.broadcast.emit("language-change");
+  });
+
   socket.on("change-name", (newName) => {
     const user = users.get(socket.id);
     if (user) {
