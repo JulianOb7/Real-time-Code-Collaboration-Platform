@@ -14,6 +14,8 @@ function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [userName, setUserName] = useState("");
   const [language, setLanguage] = useState("javascript");
+  const [output, setOutput] = useState("");
+  const [isRunning, setIsRunning] = useState(false);
 
   useEffect(() => {
     socket.on("users-list", (userList: User[]) => {
@@ -41,6 +43,58 @@ function App() {
     };
   }, [userName]);
 
+  const runCode = async () => {
+    if (!editorRef.current) return;
+    setIsRunning(true);
+    setOutput("Running...");
+
+    const code = editorRef.current.getValue();
+
+    const languageIds: { [key: string]: number } = {
+      javascript: 63,
+      typescript: 74,
+      python: 71,
+      java: 62,
+      csharp: 51,
+    };
+
+    try {
+      const response = await fetch(
+        "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&wait=true",
+        {
+          method: "POST",
+          headers: {
+            "x-rapidapi-key":
+              "3a352f0129msh15daebde5d18274p1b2bb6jsne9d30b6b8c17",
+            "x-rapidapi-host": "judge0-ce.p.rapidapi.com",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            language_id: languageIds[language],
+            source_code: btoa(code),
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      const result = data.stdout
+        ? atob(data.stdout)
+        : data.stderr
+          ? atob(data.stderr)
+          : data.compile_output
+            ? atob(data.compile_output)
+            : "Code executed with no output.";
+
+      setOutput(result);
+    } catch (error) {
+      console.error(error);
+      setOutput("Error: Check your internet connection or API subscription.");
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   function handleEditorChange(value: string | undefined) {
     if (!isReceiving.current && value !== undefined) {
       socket.emit("code-change", value);
@@ -66,6 +120,7 @@ function App() {
         height: "100vh",
         width: "100vw",
         backgroundColor: "#1e1e1e",
+        overflow: "hidden",
       }}
     >
       <div
@@ -75,6 +130,8 @@ function App() {
           borderRight: "1px solid #333",
           padding: "20px",
           color: "white",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         <h3
@@ -119,15 +176,33 @@ function App() {
           <option value="typescript">TypeScript</option>
           <option value="python">Python</option>
           <option value="java">Java</option>
-          <option value="cpp">C++</option>
+          <option value="csharp">C#</option>
         </select>
+
+        <button
+          onClick={runCode}
+          disabled={isRunning}
+          style={{
+            width: "100%",
+            padding: "10px",
+            backgroundColor: isRunning ? "#2a6a43" : "#4ade80",
+            color: "black",
+            border: "none",
+            borderRadius: "4px",
+            fontWeight: "bold",
+            cursor: isRunning ? "not-allowed" : "pointer",
+            marginBottom: "20px",
+          }}
+        >
+          {isRunning ? "RUNNING..." : "RUN CODE"}
+        </button>
 
         <h3
           style={{ color: "#4ade80", fontSize: "0.8rem", marginBottom: "20px" }}
         >
           COLLABORATORS
         </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ flex: 1, overflowY: "auto" }}>
           {users.map((user) => (
             <div
               key={user.id}
@@ -136,6 +211,7 @@ function App() {
                 alignItems: "center",
                 gap: "10px",
                 fontSize: "0.9rem",
+                marginBottom: "10px",
               }}
             >
               <div
@@ -152,19 +228,39 @@ function App() {
         </div>
       </div>
 
-      <div style={{ flex: 1 }}>
-        <Editor
-          height="100%"
-          language={language}
-          theme="vs-dark"
-          onChange={handleEditorChange}
-          onMount={(editor) => (editorRef.current = editor)}
-          options={{
-            fontSize: 14,
-            minimap: { enabled: false },
-            automaticLayout: true,
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1 }}>
+          <Editor
+            height="100%"
+            language={language}
+            theme="vs-dark"
+            onChange={handleEditorChange}
+            onMount={(editor) => (editorRef.current = editor)}
+            options={{
+              fontSize: 14,
+              minimap: { enabled: false },
+              automaticLayout: true,
+            }}
+          />
+        </div>
+        <div
+          style={{
+            height: "30%",
+            background: "#000",
+            color: "#4ade80",
+            padding: "15px",
+            borderTop: "1px solid #333",
+            overflowY: "auto",
+            fontFamily: "monospace",
           }}
-        />
+        >
+          <div
+            style={{ fontSize: "0.8rem", color: "#888", marginBottom: "5px" }}
+          >
+            TERMINAL:
+          </div>
+          <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{output}</pre>
+        </div>
       </div>
     </div>
   );
