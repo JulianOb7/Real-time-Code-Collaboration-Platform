@@ -64,8 +64,7 @@ function App() {
         {
           method: "POST",
           headers: {
-            "x-rapidapi-key":
-              "3a352f0129msh15daebde5d18274p1b2bb6jsne9d30b6b8c17",
+            "x-rapidapi-key": import.meta.env.VITE_RAPIDAPI_KEY,
             "x-rapidapi-host": "judge0-ce.p.rapidapi.com",
             "Content-Type": "application/json",
           },
