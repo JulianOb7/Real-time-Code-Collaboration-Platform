@@ -1,6 +1,6 @@
 import express from "express";
 import http from "http";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import cors from "cors";
 
 const app = express();
@@ -16,17 +16,17 @@ const io = new Server(server, {
 
 const users = new Map();
 
-io.on("connection", (socket) => {
+io.on("connection", (socket: Socket) => {
   const userData = { id: socket.id, name: `User-${socket.id.substring(0, 4)}` };
   users.set(socket.id, userData);
 
   io.emit("users-list", Array.from(users.values()));
 
-  socket.on("language-change", (newLang) => {
+  socket.on("language-change", (newLang: string) => {
     socket.broadcast.emit("language-change", newLang);
   });
 
-  socket.on("change-name", (newName) => {
+  socket.on("change-name", (newName: string) => {
     const user = users.get(socket.id);
     if (user) {
       user.name = newName;
@@ -35,7 +35,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("code-change", (data) => {
+  socket.on("code-change", (data: string) => {
     socket.broadcast.emit("code-change", data);
   });
 
